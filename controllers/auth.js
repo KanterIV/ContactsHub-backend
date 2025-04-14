@@ -90,9 +90,13 @@ const login = async (req, res) => {
     throw HttpError(401, "Email or password is wrong");
   }
 
-  if (!user.verify) {
-    throw HttpError(401, "Your e-mail is not verified");
-  }
+  //* Users email verification - Uncomment the code if verification before login is required *//
+
+  // if (!user.verify) {
+  //   throw HttpError(401, "Your e-mail is not verified");
+  // }
+
+  //* Users email verification -------------------------------------------------------------*//
 
   const passwordCompare = await bcrypt.compare(password, user.password);
 
@@ -117,6 +121,31 @@ const login = async (req, res) => {
       subscription: user.subscription,
     },
   });
+};
+
+const resetPassword = async (req, res) => {
+  const { _id, password } = req.user;
+  const { currentPassword, newPassword } = req.body;
+
+  const passwordCompare = await bcrypt.compare(currentPassword, password);
+
+  if (!passwordCompare) {
+    throw HttpError(401, "Password is wrong");
+  }
+
+  const hashNewPassword = await bcrypt.hash(newPassword, 10);
+
+  const updatedUser = await User.findByIdAndUpdate(
+    _id,
+    { password: hashNewPassword },
+    { new: true }
+  );
+
+  if (!updatedUser) {
+    throw HttpError(404, "Not found");
+  }
+
+  res.status(200).json({ message: "Your password was successfully changed!" });
 };
 
 const getCurrent = async (req, res) => {
@@ -186,6 +215,7 @@ module.exports = {
   resendVerifyEmail: ctrlWrapper(resendVerifyEmail),
   login: ctrlWrapper(login),
   getCurrent: ctrlWrapper(getCurrent),
+  resetPassword: ctrlWrapper(resetPassword),
   logout: ctrlWrapper(logout),
   updateUserSubscription: ctrlWrapper(updateUserSubscription),
   updateAvatar: ctrlWrapper(updateAvatar),
